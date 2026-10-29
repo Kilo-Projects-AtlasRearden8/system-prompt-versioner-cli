@@ -46,6 +46,11 @@ def build_parser():
     sub_show.add_argument("name", help="Prompt name (or name@vN)")
     sub_show.add_argument("--version", type=int, help="Specific version number")
 
+    # delete
+    sub_delete = sub.add_parser("delete", help="Delete a prompt version")
+    sub_delete.add_argument("name", help="Prompt name (or name@vN)")
+    sub_delete.add_argument("--version", type=int, help="Specific version number (default: latest)")
+
     # diff
     sub_diff = sub.add_parser("diff", help="Diff two prompt versions")
     sub_diff.add_argument("a", help="First prompt (name or name@vN)")
@@ -55,8 +60,8 @@ def build_parser():
     sub_compare = sub.add_parser("compare", help="Compare two prompts by calling an endpoint")
     sub_compare.add_argument("a", help="First prompt (name or name@vN)")
     sub_compare.add_argument("b", help="Second prompt (name or name@vN)")
-    sub_compare.add_argument("--endpoint", required=True, help="Endpoint URL")
-    sub_compare.add_argument("--model", required=True, help="Model name")
+    sub_compare.add_argument("--endpoint", help="Endpoint URL (default: configured default)")
+    sub_compare.add_argument("--model", help="Model name (default: configured default)")
     sub_compare.add_argument("--message", default="Hello, can you introduce yourself?", help="User message to send")
 
     return parser
@@ -105,7 +110,8 @@ def cmd_save(args):
     cfg = config.load_config()
     store = get_store(cfg)
     if args.file:
-        prompt = open(args.file, encoding="utf-8").read()
+        with open(args.file, encoding="utf-8") as handle:
+            prompt = handle.read()
     elif args.prompt is not None:
         prompt = args.prompt
     else:
@@ -149,6 +155,18 @@ def cmd_show(args):
     return 0
 
 
+def cmd_delete(args):
+    cfg = config.load_config()
+    store = get_store(cfg)
+    name, version = parse_name_version(args.name)
+    if args.version is not None:
+        version = args.version
+    record = store.delete(name, version)
+    version_str = f"v{record.version:03d}"
+    print(f"Deleted {record.name} {version_str} ({record.path})")
+    return 0
+
+
 def cmd_diff(args):
     cfg = config.load_config()
     store = get_store(cfg)
@@ -172,9 +190,11 @@ def cmd_compare(args):
     record_a = store.get(name_a, version_a)
     record_b = store.get(name_b, version_b)
     client = OpenAIClient()
+    endpoint = args.endpoint or cfg.get("default_endpoint", "")
+    model = args.model or cfg.get("default_model", "")
     try:
-        response_a = client.chat(args.endpoint, args.model, record_a.content, args.message)
-        response_b = client.chat(args.endpoint, args.model, record_b.content, args.message)
+        response_a = client.chat(endpoint, model, record_a.content, args.message)
+        response_b = client.chat(endpoint, model, record_b.content, args.message)
     except ClientError as exc:
         raise SystemExit(str(exc))
     print(f"=== {record_a.name} v{record_a.version} ===")
@@ -206,6 +226,8 @@ def main(argv=None):
             cmd_list(args)
         elif args.command == "show":
             cmd_show(args)
+        elif args.command == "delete":
+            cmd_delete(args)
         elif args.command == "diff":
             cmd_diff(args)
         elif args.command == "compare":

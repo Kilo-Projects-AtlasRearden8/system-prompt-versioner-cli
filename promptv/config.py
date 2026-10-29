@@ -17,8 +17,8 @@ def data_dir():
 
 def default_config():
     return {
-        "default_endpoint": DEFAULT_ENDPOINT,
-        "default_model": DEFAULT_MODEL,
+        "default_endpoint": os.environ.get("PROMPTV_DEFAULT_ENDPOINT", DEFAULT_ENDPOINT),
+        "default_model": os.environ.get("PROMPTV_DEFAULT_MODEL", DEFAULT_MODEL),
         "data_dir": str(data_dir()),
     }
 

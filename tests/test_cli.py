@@ -116,6 +116,43 @@ def test_compare_missing_args(run_cli, temp_dir):
     assert code != 0
 
 
+def test_delete_cli(run_cli, temp_dir):
+    run_cli(["save", "bot", "--prompt", "first"])
+    run_cli(["save", "bot", "--prompt", "second"])
+    code, out, err = run_cli(["delete", "bot", "--version", "1"])
+    assert code == 0
+    assert "Deleted bot v001" in out
+    code, out, err = run_cli(["list", "bot"])
+    assert code == 0
+    assert "v002" in out
+    assert "v001" not in out
+
+
+def test_delete_latest_by_default(run_cli, temp_dir):
+    run_cli(["save", "bot", "--prompt", "first"])
+    run_cli(["save", "bot", "--prompt", "second"])
+    code, out, err = run_cli(["delete", "bot"])
+    assert code == 0
+    assert "Deleted bot v002" in out
+
+
+def test_delete_missing(run_cli, temp_dir):
+    code, out, err = run_cli(["delete", "nonexistent"])
+    assert code != 0
+
+
+def test_compare_uses_config_defaults(run_cli, mock_endpoint, temp_dir):
+    run_cli(["config", "--endpoint", mock_endpoint, "--model", "mock-model"])
+    run_cli(["save", "prompt-a", "--prompt", "System A"])
+    run_cli(["save", "prompt-b", "--prompt", "System B"])
+    code, out, err = run_cli(["compare", "prompt-a", "prompt-b"])
+    assert code == 0
+    assert "prompt-a v1" in out
+    assert "prompt-b v1" in out
+    assert "mock response to: System A" in out
+    assert "mock response to: System B" in out
+
+
 def test_save_empty_prompt_fails(run_cli, temp_dir):
     code, out, err = run_cli(["save", "empty", "--prompt", ""])
     assert code != 0
