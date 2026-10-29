@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "promptv"
+version = "1.0.0"
+description = "Save, diff, and compare system-prompt versions across OpenAI-compatible endpoints, stored locally as Markdown."
+readme = "README.md"
+license = {file = "LICENSE"}
+requires-python = ">=3.9"
+authors = [{name = "Asdale Dynamics, LLC"}]
+keywords = ["prompt", "system-prompt", "ollama", "openai", "cli", "local-ai"]
+
+[project.scripts]
+promptv = "promptv.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["promptv*"]
